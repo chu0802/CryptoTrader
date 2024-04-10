@@ -1,0 +1,4 @@
+[tool.pycln]
+all = true
+expand-stars = true
+exclude= "(.eggs|.git|.mypy_cache|__pycache__|__init__.py|.json|rpc/|app.py)"
