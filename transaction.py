@@ -1,11 +1,11 @@
 import json
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
 
-import pytz
 import requests
+
+from utils.datetime import FormattedDateTime
 
 
 class TransactionType(Enum):
@@ -26,7 +26,7 @@ class Transaction:
     mode: TransactionType
     price: float
     amount: float
-    time: Union[int, str, datetime]
+    time: FormattedDateTime
     fee_ratio: Optional[float] = 2e-4
 
     def to_dict(self):
@@ -59,14 +59,8 @@ class Transaction:
         return cls(TransactionType[d["mode"]], d["price"], d["amount"], d["time"])
 
     def __post_init__(self):
-        if isinstance(self.time, str):
-            parsed_time = datetime.strptime(self.time, "%Y-%m-%d %H:%M:%S")
-            self.time = parsed_time.astimezone(pytz.timezone("Asia/Taipei"))
-        elif isinstance(self.time, int):
-            self.time = datetime.fromtimestamp(
-                self.time, tz=pytz.timezone("Asia/Taipei")
-            )
-
+        if not isinstance(self.time, FormattedDateTime):
+            self.time = FormattedDateTime(self.time)
         if isinstance(self.mode, str):
             self.mode = TransactionType[self.mode]
 
@@ -136,6 +130,15 @@ class TransactionFlow:
             "average_price": self.average_price,
             "realized_profit": self.realized_profit,
         }
+
+    def dump(self, current_price):
+        return (
+            {
+                **self.to_dict(),
+                "unrealized_profit": self.unrealized_profit(current_price),
+                "net_profit": self.net_profit(current_price),
+            },
+        )
 
 
 def read_transactions(filename):

@@ -1,10 +1,9 @@
 import argparse
 import json
 from collections import deque
-from datetime import datetime
-from pathlib import Path
 
-import pytz
+from utils.config import DataPath
+from utils.json import dump, load
 
 
 class KDJCalculator:
@@ -16,8 +15,8 @@ class KDJCalculator:
         highest_prices = deque(maxlen=9)
         lowest_prices = deque(maxlen=9)
 
-        for timestamp in self.historical_prices.keys():
-            high, low, close = self.historical_prices[timestamp]
+        for time in self.historical_prices.keys():
+            high, low, close = self.historical_prices[time]
             highest_prices.append(high)
             lowest_prices.append(low)
             if len(highest_prices) < 9:
@@ -44,17 +43,12 @@ class KDJCalculator:
 
     def generate_kdj_data(self, k_values, d_values, j_values):
         kdj_data = []
-        timestamps = sorted(self.historical_prices.keys())[8:]
-        for i, timestamp in enumerate(timestamps):
-            utc_time = datetime.utcfromtimestamp(int(timestamp)).replace(
-                tzinfo=pytz.utc
-            )
-            local_time = utc_time.astimezone(pytz.timezone("Asia/Shanghai"))
-            formatted_time = local_time.strftime("%Y-%m-%d %H:%M:%S %Z%z")
+        timestamps = list(self.historical_prices.keys())[8:]
+        for i, time in enumerate(timestamps):
             kdj_data.append(
                 {
-                    "timestamp": formatted_time,
-                    "price": self.historical_prices[timestamp][-1],
+                    "timestamp": time,
+                    "price": self.historical_prices[time][-1],
                     "K": k_values[i],
                     "D": d_values[i],
                     "J": j_values[i],
@@ -77,18 +71,7 @@ def argument_parsing():
         default="BTCUSDT",
         help="The symbol to calculate KDJ values for.",
     )
-    parser.add_argument(
-        "--data_dir",
-        type=Path,
-        default=Path("data"),
-        help="The directory to save the KDJ data to.",
-    )
-    parser.add_argument(
-        "--prices_path",
-        type=str,
-        default="prices.json",
-        help="The path to the historical prices JSON file.",
-    )
+
     parser.add_argument(
         "--output_file",
         type=str,
@@ -100,18 +83,18 @@ def argument_parsing():
 
 
 def main(args):
-    with args.prices_path.open() as f:
-        historical_prices = json.load(f)
+    historical_prices = load(args.prices_path)
 
     kdj_calculator = KDJCalculator(historical_prices)
     k_values, d_values, j_values = kdj_calculator.calculate_kdj()
     kdj_data = kdj_calculator.generate_kdj_data(k_values, d_values, j_values)
-    kdj_calculator.save_kdj_data_to_json(kdj_data)
+
+    dump(kdj_data, args.output_path)
 
 
 if __name__ == "__main__":
     args = argument_parsing()
-    args.prices_path = args.data_dir / args.symbol.lower() / args.prices_path
-    args.output_path = args.data_dir / args.symbol.lower() / args.output_file
+    args.prices_path = DataPath(f"{args.symbol.lower()}/prices.json")
+    args.output_path = DataPath(f"{args.symbol.lower()}/{args.output_file}")
 
     main(args)

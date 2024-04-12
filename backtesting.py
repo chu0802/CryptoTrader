@@ -1,12 +1,10 @@
-import json
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Union
-
-import pytz
 
 from strategy import BaseStrategy, GridTradingStrategy
+from utils.config import DataPath, ResultsPath
+from utils.datetime import FormattedDateTime
+from utils.json import dump, load
 
 
 @dataclass
@@ -16,82 +14,58 @@ class KLine:
     close: float
 
 
-def formatted_time_converter(
-    formatted_time_str, timezone="Asia/Taipei", format="%Y-%m-%d %H:%M:%S"
-):
-    parsed_time = datetime.strptime(formatted_time_str, format)
-    return parsed_time.astimezone(pytz.timezone(timezone))
-
-
 class Tester:
     def __init__(
         self,
-        start_time: Union[datetime, str],
-        end_time: Union[datetime, str],
-        prices_path: Path,
-        results_path: Path = Path("results"),
+        start_time: FormattedDateTime,
+        end_time: FormattedDateTime = None,
+        symbol: str = "btcusdt",
     ):
-        self.start_time = (
-            formatted_time_converter(start_time)
-            if isinstance(start_time, str)
-            else start_time
-        )
-        self.end_time = (
-            formatted_time_converter(end_time)
-            if isinstance(end_time, str)
-            else end_time
-        )
-        self._data = self.load_data(prices_path)
-        self.results_path = results_path
+        if not isinstance(start_time, FormattedDateTime):
+            start_time = FormattedDateTime(start_time)
+        if end_time is not None and not isinstance(end_time, FormattedDateTime):
+            end_time = FormattedDateTime(end_time)
+
+        self.start_time = start_time
+        self.end_time = end_time
+        self.price_path = DataPath(f"{symbol.lower()}/prices.json")
+
+        self._data = self.load_data(self.price_path)
 
     def load_data(self, prices_path: Path):
-        with prices_path.open("r") as f:
-            data = json.load(f)
+        data = load(prices_path)
+
+        end_time = (
+            FormattedDateTime(list(data.keys())[-1])
+            if self.end_time is None
+            else self.end_time
+        )
+
+        total_seconds = int((end_time - self.start_time).total_seconds())
+
         return {
-            i: KLine(*data[str(i)])
-            for i in range(
-                int(self.start_time.timestamp()),
-                int((self.end_time.timestamp())) + 1,
-                60,
-            )
+            self.start_time + i: KLine(*data[(self.start_time + i).string])
+            for i in range(0, total_seconds + 1, 60)
         }
 
-    def get_kline(self, timestamp: Union[str, datetime, int]):
-        if isinstance(timestamp, str):
-            timestamp = formatted_time_converter(timestamp).timestamp()
-        elif isinstance(timestamp, datetime):
-            timestamp = int(timestamp.timestamp())
-        return self._data[timestamp]
-
     def test(self, strategy: BaseStrategy):
-        results_path = self.results_path / strategy.name / "result.json"
+        results_path = ResultsPath(f"{strategy.name}/result.json")
         results_path.parent.mkdir(parents=True, exist_ok=True)
 
-        for timestamp, kline in self._data.items():
-            strategy.get_action(timestamp, kline)
+        for time, kline in self._data.items():
+            strategy.get_action(time, kline)
 
             if not strategy.check_budget(kline.close):
-                print(
-                    f"bankrupt time:",
-                    datetime.fromtimestamp(timestamp).strftime(
-                        "%Y-%m-%d %H:%M:%S %Z%z"
-                    ),
-                )
+                print(f"bankrupt time:", time.string)
                 break
 
-        with results_path.open("w") as f:
-            json.dump(strategy.get_result(), f, indent=4)
+        dump(strategy.get_result(), results_path)
 
 
 if __name__ == "__main__":
-    tester = Tester(
-        "2024-04-05 20:32:00", "2024-04-10 07:38:00", Path("data/btcusdt/prices.json")
-    )
-
+    tester = Tester("2024-04-05 20:32:00", symbol="btcusdt")
     highest, lowest, num_interval = 75000, 60000, 20
-    initial_amount = (
-        0.7 * 200 * 30 / sum(range(lowest, highest, (highest - lowest) // num_interval))
-    )
+    initial_amount = 0.003
 
     strategy = GridTradingStrategy(
         budget=200,

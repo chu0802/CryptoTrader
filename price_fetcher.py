@@ -1,10 +1,12 @@
 import argparse
 import asyncio
-import json
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import aiohttp
+
+from utils.config import DataPath
+from utils.datetime import FormattedDateTime
+from utils.json import dump
 
 
 class BinancePriceFetcher:
@@ -12,6 +14,12 @@ class BinancePriceFetcher:
 
     def __init__(self):
         self.session = aiohttp.ClientSession()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args, **kwargs):
+        await self.session.close()
 
     async def fetch_historical_prices(
         self, symbol, interval, max_num_per_request, start_time
@@ -42,7 +50,7 @@ class BinancePriceFetcher:
             print(f"Error fetching historical prices from Binance API: {str(e)}")
             return {}
 
-    async def split_endtimes(self, total_num, batch_size=1000):
+    def split_endtimes(self, total_num, batch_size=1000):
         now = datetime.now()
         closest_now = datetime(now.year, now.month, now.day, now.hour, now.minute)
         return [
@@ -51,22 +59,21 @@ class BinancePriceFetcher:
         ]
 
     async def fetch_all_historical_prices(self, symbol, interval, total_num):
-        endtimes = await self.split_endtimes(total_num)
+        endtimes = self.split_endtimes(total_num)
         tasks = [
             self.fetch_historical_prices(symbol, interval, 1000, endtime)
             for endtime in endtimes
         ]
         historical_prices = await asyncio.gather(*tasks)
         historical_prices = {
-            timestamp: price
+            FormattedDateTime(timestamp): price
             for prices in historical_prices
             for timestamp, price in prices.items()
         }
-        sorted_historical_prices = dict(sorted(historical_prices.items()))
+        sorted_historical_prices = dict(
+            sorted(historical_prices.items(), key=lambda x: x[0].timestamp)
+        )
         return sorted_historical_prices
-
-    async def close_session(self):
-        await self.session.close()
 
 
 def argument_parsing():
@@ -88,39 +95,25 @@ def argument_parsing():
     parser.add_argument(
         "--total_num",
         type=int,
-        default=500000,
+        default=100,
         help="Total number of historical prices to fetch",
     )
-    parser.add_argument(
-        "--output_dir",
-        type=Path,
-        default=Path("data"),
-        help="Output directory for the historical prices",
-    )
-    parser.add_argument(
-        "--output_file",
-        type=str,
-        default="prices.json",
-        help="Output file for the historical prices",
-    )
+
     return parser.parse_args()
 
 
 async def main(args):
-    fetcher = BinancePriceFetcher()
-    historical_prices = await fetcher.fetch_all_historical_prices(
-        args.symbol, args.interval, args.total_num
-    )
+    async with BinancePriceFetcher() as fetcher:
+        historical_prices = await fetcher.fetch_all_historical_prices(
+            args.symbol, args.interval, args.total_num
+        )
 
-    with args.output_path.open("w") as json_file:
-        json.dump(historical_prices, json_file, indent=4)
-
-    await fetcher.close_session()
+        dump(historical_prices, args.output_path)
 
 
 if __name__ == "__main__":
     args = argument_parsing()
-    args.output_path = args.output_dir / args.symbol.lower() / args.output_file
+    args.output_path = DataPath(f"{args.symbol.lower()}/prices.json")
     args.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     asyncio.run(main(args))

@@ -1,7 +1,7 @@
 from abc import abstractmethod
-from datetime import datetime
 
 from transaction import Transaction, TransactionFlow
+from utils.datetime import FormattedDateTime
 
 
 class BaseStrategy:
@@ -36,12 +36,12 @@ class BaseStrategy:
         return total_budget > 0
 
     @abstractmethod
-    def _get_action(self, timestamp, kline) -> Transaction:
+    def _get_action(self, time: FormattedDateTime, kline) -> Transaction:
         raise NotImplementedError
 
     @abstractmethod
-    def get_action(self, timestamp: int, kline):
-        transaction = self._get_action(timestamp, kline)
+    def get_action(self, time: FormattedDateTime, kline):
+        transaction = self._get_action(time, kline)
 
         if transaction:
             transaction.amount *= self.leverage
@@ -53,20 +53,9 @@ class BaseStrategy:
                 current_price = kline.close
                 self.transaction_snapshot.append(
                     {
-                        "timestamp": timestamp,
-                        "formatted time": datetime.fromtimestamp(timestamp).strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
+                        "time": time,
                         "transaction": transaction.to_dict(),
-                        "transaction_flow": {
-                            **self.transaction_flow.to_dict(),
-                            "unrealized_profit": self.transaction_flow.unrealized_profit(
-                                current_price
-                            ),
-                            "net_profit": self.transaction_flow.net_profit(
-                                current_price
-                            ),
-                        },
+                        "transaction_flow": self.transaction_flow.dump(current_price),
                     }
                 )
 
@@ -104,7 +93,7 @@ class GridTradingStrategy(BaseStrategy):
             + self.interval
         )
 
-    def _get_action(self, timestamp: int, kline):
+    def _get_action(self, time: FormattedDateTime, kline):
         current_value = kline.close
         highest_value = kline.high
         lowest_value = kline.low
@@ -118,7 +107,7 @@ class GridTradingStrategy(BaseStrategy):
 
             if lowest_value <= self.buy_price:
                 transaction = Transaction(
-                    mode="BUY", amount=self.amount, price=self.buy_price, time=timestamp
+                    mode="BUY", amount=self.amount, price=self.buy_price, time=time
                 )
 
                 self.sell_price = self.get_closest_upper_bound(self.buy_price + 100)
@@ -130,7 +119,7 @@ class GridTradingStrategy(BaseStrategy):
                     mode="SELL",
                     amount=self.amount,
                     price=self.sell_price,
-                    time=timestamp,
+                    time=time,
                 )
 
                 self.buy_price = self.get_closest_lower_bound(self.sell_price - 100)
@@ -152,19 +141,15 @@ class DCAStrategy(BaseStrategy):
         self.time_interval = time_interval
         self.amount_in_usd = amount_in_usd
 
-    def _get_action(self, timestamp: int, kline):
+    def _get_action(self, time: FormattedDateTime, kline):
         last_transaction_snapshot = self.get_last_transaction_snapshot()
 
         amount = self.amount_in_usd / kline.close
 
         if last_transaction_snapshot is None:
-            return Transaction(
-                mode="BUY", amount=amount, price=kline.close, time=timestamp
-            )
-        elif timestamp - last_transaction_snapshot["timestamp"] >= self.time_interval:
-            return Transaction(
-                mode="BUY", amount=amount, price=kline.close, time=timestamp
-            )
+            return Transaction(mode="BUY", amount=amount, price=kline.close, time=time)
+        elif time - last_transaction_snapshot["time"] >= self.time_interval:
+            return Transaction(mode="BUY", amount=amount, price=kline.close, time=time)
 
 
 class GoingShortStrategy(BaseStrategy):
@@ -181,19 +166,16 @@ class GoingShortStrategy(BaseStrategy):
         self.time_interval = time_interval
         self.amount_in_usd = amount_in_usd
 
-    def _get_action(self, timestamp: int, kline):
+    def _get_action(self, time: FormattedDateTime, kline):
         last_transaction_snapshot = self.get_last_transaction_snapshot()
 
         amount = self.amount_in_usd / kline.close
 
         if last_transaction_snapshot is None:
-            return Transaction(
-                mode="SELL", amount=amount, price=kline.close, time=timestamp
-            )
-        elif timestamp - last_transaction_snapshot["timestamp"] >= self.time_interval:
-            return Transaction(
-                mode="SELL", amount=amount, price=kline.close, time=timestamp
-            )
+            return Transaction(mode="SELL", amount=amount, price=kline.close, time=time)
+
+        elif time - last_transaction_snapshot["time"] >= self.time_interval:
+            return Transaction(mode="SELL", amount=amount, price=kline.close, time=time)
 
 
 if __name__ == "__main__":
