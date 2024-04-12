@@ -1,3 +1,5 @@
+.env.sh
+.vscode
 data/
 results/
 transactions/
