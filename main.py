@@ -1,9 +1,13 @@
+import argparse
+import logging
+import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from strategy import BaseStrategy, GridTradingStrategy
+from protocol import FormattedDateTime, KLine
+from strategy import BaseStrategy, get_strategy
 from utils.config import DataPath, ResultsPath
 from utils.json import dump, load
-from utils.protocol import FormattedDateTime, KLine
 
 
 class Tester:
@@ -13,8 +17,6 @@ class Tester:
         end_time: FormattedDateTime = None,
         symbol: str = "btcusdt",
     ):
-        if not isinstance(start_time, FormattedDateTime):
-            start_time = FormattedDateTime(start_time)
         if end_time is not None and not isinstance(end_time, FormattedDateTime):
             end_time = FormattedDateTime(end_time)
 
@@ -58,18 +60,48 @@ class Tester:
         dump(transaction_snapshots, results_path)
 
 
-if __name__ == "__main__":
-    tester = Tester("2024-04-05 20:32:00", symbol="btcusdt")
-    highest, lowest, num_interval = 75000, 60000, 20
-    initial_amount = 0.003
+def fetch_price(start_time, end_time=None, symbol="btcusdt"):
+    if end_time is None:
+        end_time = FormattedDateTime(datetime.now() - timedelta(minutes=1))
+    fetch_amount = int((end_time - start_time).total_seconds() // 60)
+    commands = [
+        "python",
+        "-m",
+        "script.price_fetcher",
+        "--symbol",
+        symbol,
+        "--total_num",
+        str(fetch_amount),
+    ]
+    print("+", " ".join(commands))
+    subprocess.run(commands)
 
-    strategy = GridTradingStrategy(
-        budget=200,
-        leverage=30,
-        amount=initial_amount / 30,
-        highest=highest,
-        lowest=lowest,
-        num_interval=num_interval,
+
+def argument_parsing():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--start_time", type=FormattedDateTime, default="2024-04-05 20:32:00"
     )
+    parser.add_argument("--end_time", type=str, default=None)
+    parser.add_argument("--symbol", type=str, default="btcusdt")
+    parser.add_argument(
+        "--strategy_config_path", type=str, default="strategy_config.json"
+    )
+    parser.add_argument("--fetch_price", action="store_true", default=False)
 
+    return parser.parse_args()
+
+
+def main(args):
+    if args.fetch_price:
+        logging.info("Fetching price")
+        fetch_price(args.start_time, args.end_time, args.symbol)
+
+    tester = Tester(args.start_time, args.end_time, args.symbol)
+    strategy = get_strategy(load(args.strategy_config_path))
     tester.test(strategy)
+
+
+if __name__ == "__main__":
+    args = argument_parsing()
+    main(args)
