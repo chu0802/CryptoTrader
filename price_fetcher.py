@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 import aiohttp
 
 from utils.config import DataPath
-from utils.datetime import FormattedDateTime
 from utils.json import dump
+from utils.protocol import FormattedDateTime, KLine
 
 
 class BinancePriceFetcher:
@@ -37,7 +37,12 @@ class BinancePriceFetcher:
                     data = await response.json()
                     prices = {
                         int(item[0])
-                        // 1000: (float(item[2]), float(item[3]), float(item[4]))
+                        // 1000: KLine(
+                            float(item[1]),
+                            float(item[2]),
+                            float(item[3]),
+                            float(item[4]),
+                        ).to_dict()
                         for item in data
                     }
                     return prices

@@ -1,8 +1,17 @@
 import json
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Union
 
 import pytz
+
+
+@dataclass
+class KLine:
+    open: float
+    high: float
+    low: float
+    close: float
 
 
 class FormattedDateTime:

@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import requests
 
-from utils.datetime import FormattedDateTime
+from utils.protocol import FormattedDateTime
 
 
 class TransactionType(Enum):
@@ -70,6 +70,7 @@ class TransactionFlow:
     amount: float = 0
     average_price: float = 0
     realized_profit: Optional[float] = 0
+    rounding: Optional[int] = 10
 
     def __repr__(self):
         return f"TransactionFlow(amount={self.amount:.3f}, average_price={self.average_price:.1f}, realized_profit={self.realized_profit:.4f})"
@@ -107,7 +108,9 @@ class TransactionFlow:
             ) / amount
 
         return TransactionFlow(
-            amount, average_price, self.realized_profit + realized_profit
+            round(amount, self.rounding),
+            round(average_price, self.rounding),
+            round(self.realized_profit + realized_profit, self.rounding),
         )
 
     @classmethod
