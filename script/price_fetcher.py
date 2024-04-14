@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 
 import aiohttp
 
+from protocol import FormattedDateTime, KLine
 from utils.config import DataPath
 from utils.json import dump
-from utils.protocol import FormattedDateTime, KLine
 
 
 class BinancePriceFetcher:
@@ -110,7 +110,7 @@ def argument_parsing():
 async def main(args):
     async with BinancePriceFetcher() as fetcher:
         historical_prices = await fetcher.fetch_all_historical_prices(
-            args.symbol, args.interval, args.total_num
+            args.symbol.upper(), args.interval, args.total_num
         )
 
         dump(historical_prices, args.output_path)
