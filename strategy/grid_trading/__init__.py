@@ -65,12 +65,14 @@ class GridTradingStrategy(BaseStrategy):
         )
         return total_transactions
 
-    def _get_action(self, time: FormattedDateTime, kline) -> List[Transaction]:
-        if time == FormattedDateTime("2024-04-14 04:07:00"):
-            pass
+    def has_intersect(self, a1, b1, a2, b2):
+        if max(a1, a2) > min(b1, b2):
+            return False
+        return True
 
+    def _get_action(self, time: FormattedDateTime, kline) -> List[Transaction]:
         # otherwise we are not doing any transactions.
-        if kline.low > self.lowest or kline.high < self.highest:
+        if self.has_intersect(kline.low, kline.high, self.lowest, self.highest):
             total_transactions = []
 
             # initialization

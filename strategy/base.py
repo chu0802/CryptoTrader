@@ -73,7 +73,3 @@ class BaseStrategy:
                     self._transaction_snapshots.append(
                         self.get_transaction_snapshot(time, current_price, transaction)
                     )
-
-
-if __name__ == "__main__":
-    s = GridTradingStrategy(200)
