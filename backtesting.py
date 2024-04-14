@@ -1,17 +1,9 @@
-from dataclasses import dataclass
 from pathlib import Path
 
 from strategy import BaseStrategy, GridTradingStrategy
 from utils.config import DataPath, ResultsPath
-from utils.datetime import FormattedDateTime
 from utils.json import dump, load
-
-
-@dataclass
-class KLine:
-    high: float
-    low: float
-    close: float
+from utils.protocol import FormattedDateTime, KLine
 
 
 class Tester:
@@ -44,7 +36,7 @@ class Tester:
         total_seconds = int((end_time - self.start_time).total_seconds())
 
         return {
-            self.start_time + i: KLine(*data[(self.start_time + i).string])
+            self.start_time + i: KLine(**data[(self.start_time + i).string])
             for i in range(0, total_seconds + 1, 60)
         }
 
@@ -58,8 +50,12 @@ class Tester:
             if not strategy.check_budget(kline.close):
                 print(f"bankrupt time:", time.string)
                 break
+        transaction_snapshots = strategy.transaction_snapshots
+        transaction_snapshots.append(
+            strategy.get_transaction_snapshot(time, kline.close)
+        )
 
-        dump(strategy.get_result(), results_path)
+        dump(transaction_snapshots, results_path)
 
 
 if __name__ == "__main__":
