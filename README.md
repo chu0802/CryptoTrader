@@ -60,11 +60,12 @@ Adjust the parameters according to your desired configuration.
 To initiate the backtesting process, use the following command:
 
 ```bash
-python main --start_time <START_TIME> --end_time <END_TIME> --fetch_price
+python main --symbol <SYMBOL> --start_time <START_TIME> --end_time <END_TIME> --fetch_price
 ```
 
 ### Parameters
 
+- `--symbol`: Specifies the cryptocurrency pair you would like to invest in, for instance, `btcusdt`.
 - `--start_time`: Specifies the start time for backtesting. Format: YYYY-MM-DD HH:MM:SS.
 - `--end_time`: Specifies the end time for backtesting. If not specified, the current time will be used as the end time.
 - `--fetch_price`: Optional flag. When included, the program will automatically fetch all required prices for testing on the specified time interval.
@@ -72,7 +73,7 @@ python main --start_time <START_TIME> --end_time <END_TIME> --fetch_price
 ### Example
 
 ```
-python main --start_time "2024-04-05 20:32:00" --end_time "2024-04-14 17:34:00" --fetch_price
+python main --symbol btcusdt --start_time "2024-04-05 20:32:00" --end_time "2024-04-14 17:34:00" --fetch_price
 ```
 
 This command will execute the backtesting process from 20:32:00 April 5th, 2024, to 17:34:00 April 14th, 2024, and fetch all necessary prices for testing.
