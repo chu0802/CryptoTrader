@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from utils.protocol import DatetimeJsonEncoder
+from protocol.datetime import DatetimeJsonEncoder
 
 
 def load(path: Path):

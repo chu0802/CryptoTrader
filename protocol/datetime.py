@@ -1,17 +1,8 @@
 import json
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Union
 
 import pytz
-
-
-@dataclass
-class KLine:
-    open: float
-    high: float
-    low: float
-    close: float
 
 
 class FormattedDateTime:
@@ -27,7 +18,7 @@ class FormattedDateTime:
         elif isinstance(time, int):
             self.time = datetime.fromtimestamp(time, tz=pytz.timezone(tz))
         elif isinstance(time, datetime):
-            self.time = time
+            self.time = time.astimezone(pytz.timezone(tz))
         else:
             raise ValueError("Invalid datetime type")
 
@@ -36,11 +27,11 @@ class FormattedDateTime:
 
     def __add__(self, other: Union["FormattedDateTime", datetime, int]):
         if isinstance(other, int):
-            return FormattedDateTime(self.time + timedelta(seconds=other))
+            return FormattedDateTime(self.time + timedelta(seconds=other), tz=self.tz)
         elif isinstance(other, datetime):
-            return FormattedDateTime(self.time + other)
+            return FormattedDateTime(self.time + other, tz=self.tz)
         elif isinstance(other, FormattedDateTime):
-            return FormattedDateTime(self.time + other.time)
+            return FormattedDateTime(self.time + other.time, tz=self.tz)
         else:
             raise ValueError("Invalid datetime type")
 

@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import requests
 
-from utils.protocol import FormattedDateTime
+from protocol import FormattedDateTime
 
 
 class TransactionType(Enum):
