@@ -9,12 +9,20 @@ class DCAStrategy(BaseStrategy):
         self,
         budget: float,
         leverage: int = 1,
-        time_interval: float = 86400,
+        time_interval: str = "week",
         amount_in_usd: float = 100,
     ):
         super().__init__(budget, leverage)
-        self.time_interval = time_interval
+        self.time_interval = self.convert_interval(time_interval)
         self.amount_in_usd = amount_in_usd
+
+    def convert_interval(self, interval: str):
+        if interval == "day":
+            return 86400
+        if interval == "week":
+            return 86400 * 7
+        elif interval == "month":
+            return 86400 * 7 * 30
 
     def _get_action(self, time: FormattedDateTime, kline):
         last_transaction_snapshot = self.get_last_transaction_snapshot()
