@@ -43,13 +43,24 @@ class Tester:
         }
 
     def test(self, strategy: BaseStrategy):
+        net_profit_history = []
         results_path = ResultsPath(f"{strategy.name}/result.json")
+        profit_path = ResultsPath(f"{strategy.name}/profit_flow.json")
         results_path.parent.mkdir(parents=True, exist_ok=True)
 
         for time, kline in self._data.items():
             strategy.get_action(time, kline)
+            net_profit_history.append(
+                {
+                    "time": int(time.timestamp * 1000),
+                    "price": kline.close,
+                    "profit": strategy.transaction_flow.net_profit(kline.close),
+                }
+            )
 
-            if not strategy.check_budget(kline.close):
+            if not (
+                strategy.check_budget(kline.low) and strategy.check_budget(kline.high)
+            ):
                 print(f"bankrupt time:", time.string)
                 break
         transaction_snapshots = strategy.transaction_snapshots
@@ -58,11 +69,13 @@ class Tester:
         )
 
         dump(transaction_snapshots, results_path)
+        dump(net_profit_history, profit_path)
 
 
 def fetch_price(start_time, end_time=None, symbol="btcusdt"):
     if end_time is None:
-        end_time = FormattedDateTime(datetime.now() - timedelta(minutes=1))
+        end_time = datetime.now() - timedelta(minutes=1)
+    end_time = FormattedDateTime(end_time)
     fetch_amount = int((end_time - start_time).total_seconds() // 60)
     commands = [
         "python",
@@ -72,6 +85,8 @@ def fetch_price(start_time, end_time=None, symbol="btcusdt"):
         symbol,
         "--total_num",
         str(fetch_amount),
+        "--end_time",
+        end_time.string,
     ]
     print("+", " ".join(commands))
     subprocess.run(commands)
