@@ -1,0 +1,9 @@
+{
+    "name": "dca",
+    "config": {
+        "budget": 200,
+        "leverage": 1,
+        "amount_in_usd": 100,
+        "time_interval": "week"
+    }
+}

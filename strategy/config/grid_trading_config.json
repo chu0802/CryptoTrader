@@ -1,0 +1,11 @@
+{
+    "name": "grid_trading",
+    "config": {
+        "budget": 182,
+        "leverage": 5,
+        "amount": 7,
+        "highest": 0.9,
+        "lowest": 0.7,
+        "num_interval": 25
+    }
+}

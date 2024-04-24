@@ -6,7 +6,7 @@ from pathlib import Path
 
 from protocol import FormattedDateTime, KLine
 from strategy import BaseStrategy, get_strategy
-from utils.config import DataPath, ResultsPath
+from utils.config import DataPath, ResultsPath, StrategyPath
 from utils.json import dump, load
 
 
@@ -100,7 +100,9 @@ def argument_parsing():
     parser.add_argument("--end_time", type=str, default=None)
     parser.add_argument("--symbol", type=str, default="btcusdt")
     parser.add_argument(
-        "--strategy_config_path", type=str, default="strategy_config.json"
+        "--strategy_config_path",
+        type=StrategyPath,
+        default=StrategyPath("config/grid_trading_config.json"),
     )
     parser.add_argument("--fetch_price", action="store_true", default=False)
 

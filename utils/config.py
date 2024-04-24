@@ -3,6 +3,7 @@ from pathlib import Path
 
 DATA_ROOT = Path(os.environ.get("DATA_ROOT", None))
 RESULTS_ROOT = Path(os.environ.get("RESULTS_ROOT", None))
+STRATEGY_ROOT = Path(os.environ.get("STRATEGY_ROOT", None))
 
 
 class BasePrefixPath(Path):
@@ -19,6 +20,11 @@ class DataPath(BasePrefixPath):
 class ResultsPath(BasePrefixPath):
     def __new__(cls, path: str, *args, **kwargs):
         return BasePrefixPath(path, RESULTS_ROOT, *args, **kwargs)
+
+
+class StrategyPath(BasePrefixPath):
+    def __new__(cls, path: str, *args, **kwargs):
+        return BasePrefixPath(path, STRATEGY_ROOT, *args, **kwargs)
 
 
 if __name__ == "__main__":
