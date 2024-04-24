@@ -55,16 +55,21 @@ class BinancePriceFetcher:
             print(f"Error fetching historical prices from Binance API: {str(e)}")
             return {}
 
-    def split_endtimes(self, total_num, batch_size=1000):
-        now = datetime.now()
-        closest_now = datetime(now.year, now.month, now.day, now.hour, now.minute)
+    def split_endtimes(self, total_num, end_time=None, batch_size=1000):
+        if end_time is None:
+            end_time = datetime.now()
+        else:
+            end_time = FormattedDateTime(end_time).datetime
+        closest_now = datetime(
+            end_time.year, end_time.month, end_time.day, end_time.hour, end_time.minute
+        )
         return [
             int((closest_now - timedelta(minutes=i)).timestamp()) * 1000
             for i in range(0, total_num, batch_size)
         ]
 
-    async def fetch_all_historical_prices(self, symbol, interval, total_num):
-        endtimes = self.split_endtimes(total_num)
+    async def fetch_all_historical_prices(self, symbol, interval, total_num, end_time):
+        endtimes = self.split_endtimes(total_num, end_time)
         tasks = [
             self.fetch_historical_prices(symbol, interval, 1000, endtime)
             for endtime in endtimes
@@ -103,6 +108,12 @@ def argument_parsing():
         default=100,
         help="Total number of historical prices to fetch",
     )
+    parser.add_argument(
+        "--end_time",
+        type=str,
+        default=None,
+        help="End time of the historical prices to fetch",
+    )
 
     return parser.parse_args()
 
@@ -110,7 +121,7 @@ def argument_parsing():
 async def main(args):
     async with BinancePriceFetcher() as fetcher:
         historical_prices = await fetcher.fetch_all_historical_prices(
-            args.symbol.upper(), args.interval, args.total_num
+            args.symbol.upper(), args.interval, args.total_num, args.end_time
         )
 
         dump(historical_prices, args.output_path)
