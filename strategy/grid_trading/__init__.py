@@ -19,7 +19,7 @@ class GridTradingStrategy(BaseStrategy):
         super().__init__(budget, leverage)
         self.highest = highest
         self.lowest = lowest
-        self.interval = (highest - lowest) // num_interval
+        self.interval = (highest - lowest) / num_interval
         self.buy_price = None
         self.sell_price = None
         self.amount = amount
@@ -42,9 +42,9 @@ class GridTradingStrategy(BaseStrategy):
                     mode="BUY", amount=self.amount, price=self.buy_price, time=time
                 )
             )
-            self.buy_price = self.get_closest_lower_bound(self.buy_price - 100)
+            self.buy_price = self.get_closest_lower_bound(self.buy_price * 0.999)
         self.sell_price = self.get_closest_upper_bound(
-            self.buy_price + 2 * self.interval - 100
+            (self.buy_price + 2 * self.interval) * 0.999
         )
         return total_transactions
 
@@ -59,9 +59,9 @@ class GridTradingStrategy(BaseStrategy):
                     time=time,
                 )
             )
-            self.sell_price = self.get_closest_upper_bound(self.sell_price + 100)
+            self.sell_price = self.get_closest_upper_bound(self.sell_price * 1.001)
         self.buy_price = self.get_closest_lower_bound(
-            self.sell_price - 2 * self.interval + 100
+            (self.sell_price - 2 * self.interval) * 1.001
         )
         return total_transactions
 
