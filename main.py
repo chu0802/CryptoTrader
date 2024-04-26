@@ -22,6 +22,7 @@ class Tester:
 
         self.start_time = start_time
         self.end_time = end_time
+        self.symbol = symbol
         self.price_path = DataPath(f"{symbol.lower()}/prices.json")
 
         self._data = self.load_data(self.price_path)
@@ -44,8 +45,8 @@ class Tester:
 
     def test(self, strategy: BaseStrategy):
         net_profit_history = []
-        results_path = ResultsPath(f"{strategy.name}/result.json")
-        profit_path = ResultsPath(f"{strategy.name}/profit_flow.json")
+        results_path = ResultsPath(f"{strategy.name}/{self.symbol}/result.json")
+        profit_path = ResultsPath(f"{strategy.name}/{self.symbol}/profit_flow.json")
         results_path.parent.mkdir(parents=True, exist_ok=True)
 
         for time, kline in self._data.items():
