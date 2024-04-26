@@ -1,6 +1,12 @@
 # CryptoTracker
 CryptoTracker allows easily development of investment strategies for cryptocurrency. It mainly simulate trading strategies against historical data to evaluate their performance.
 
+## Visualization Demo
+
+![](figures/demo.png)
+
+CryptoTracker provide a visualization tool to easily trace the performance (i.e., the cumulated net profit) of your strategy.
+
 ## Prerequisites
 
 This project uses Python 3.10. Before running this project, ensure you have Python 3.10 installed on your system. Besides, install all required packages by executing the following command:
