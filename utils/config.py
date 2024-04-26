@@ -4,6 +4,7 @@ from pathlib import Path
 DATA_ROOT = Path(os.environ.get("DATA_ROOT", None))
 RESULTS_ROOT = Path(os.environ.get("RESULTS_ROOT", None))
 STRATEGY_ROOT = Path(os.environ.get("STRATEGY_ROOT", None))
+PYTHON_PATH = os.environ.get("PYTHON_PATH", None)
 
 
 class BasePrefixPath(Path):
