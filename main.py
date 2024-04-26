@@ -6,7 +6,7 @@ from pathlib import Path
 
 from protocol import FormattedDateTime, KLine
 from strategy import BaseStrategy, get_strategy
-from utils.config import DataPath, ResultsPath, StrategyPath
+from utils.config import PYTHON_PATH, DataPath, ResultsPath, StrategyPath
 from utils.json import dump, load
 
 
@@ -54,6 +54,7 @@ class Tester:
                 {
                     "time": int(time.timestamp * 1000),
                     "price": kline.close,
+                    "average_price": strategy.transaction_flow.average_price,
                     "profit": strategy.transaction_flow.net_profit(kline.close),
                 }
             )
@@ -78,7 +79,7 @@ def fetch_price(start_time, end_time=None, symbol="btcusdt"):
     end_time = FormattedDateTime(end_time)
     fetch_amount = int((end_time - start_time).total_seconds() // 60)
     commands = [
-        "python",
+        PYTHON_PATH,
         "-m",
         "script.price_fetcher",
         "--symbol",
