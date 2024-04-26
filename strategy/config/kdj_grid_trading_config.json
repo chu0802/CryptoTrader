@@ -1,0 +1,16 @@
+{
+    "name": "kdj_grid_trading",
+    "config": {
+        "symbol": "ondousdt",
+        "budget": 182,
+        "leverage": 5,
+        "amount": 7,
+        "highest": 0.9,
+        "lowest": 0.7,
+        "num_interval": 25,
+        "cold_start": 30,
+        "lower_bound": 30,
+        "upper_bound": 70,
+        "epsilon": 1
+    }
+}

@@ -3,6 +3,7 @@ import sys
 from strategy.base import BaseStrategy
 from strategy.dca import DCAStrategy, GoingShortStrategy
 from strategy.grid_trading import GridTradingStrategy
+from strategy.kdj_grid_trading import KDJGridTradingStrategy
 
 STRATEGY_MAP = {
     v._name: v

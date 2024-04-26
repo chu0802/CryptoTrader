@@ -1,13 +1,15 @@
 import argparse
 import json
 from collections import deque
+from typing import Dict
 
+from protocol import FormattedDateTime, KLine
 from utils.config import DataPath
 from utils.json import dump, load
 
 
 class KDJCalculator:
-    def __init__(self, historical_prices):
+    def __init__(self, historical_prices: Dict[FormattedDateTime, KLine]):
         self.historical_prices = historical_prices
 
     def calculate_kdj(self):
@@ -15,10 +17,9 @@ class KDJCalculator:
         highest_prices = deque(maxlen=9)
         lowest_prices = deque(maxlen=9)
 
-        for time in self.historical_prices.keys():
-            high, low, close = self.historical_prices[time]
-            highest_prices.append(high)
-            lowest_prices.append(low)
+        for kline in self.historical_prices.values():
+            highest_prices.append(kline.high)
+            lowest_prices.append(kline.low)
             if len(highest_prices) < 9:
                 continue
 
@@ -28,7 +29,7 @@ class KDJCalculator:
             dominator = (
                 highest_high - lowest_low if highest_high - lowest_low != 0 else 0.001
             )
-            rsv = (close - lowest_low) / dominator * 100
+            rsv = (kline.close - lowest_low) / dominator * 100
 
             if not k_values:
                 k_values.append(50)
@@ -42,18 +43,15 @@ class KDJCalculator:
         return k_values, d_values, j_values
 
     def generate_kdj_data(self, k_values, d_values, j_values):
-        kdj_data = []
-        timestamps = list(self.historical_prices.keys())[8:]
-        for i, time in enumerate(timestamps):
-            kdj_data.append(
-                {
-                    "timestamp": time,
-                    "price": self.historical_prices[time][-1],
-                    "K": k_values[i],
-                    "D": d_values[i],
-                    "J": j_values[i],
-                }
-            )
+        kdj_data = {}
+        times = list(self.historical_prices.keys())[8:]
+        for i, time in enumerate(times):
+            kdj_data[time] = {
+                "time": time,
+                "K": k_values[i],
+                "D": d_values[i],
+                "J": j_values[i],
+            }
         return kdj_data
 
     def save_kdj_data_to_json(self, kdj_data, filename="kdj_data.json"):
