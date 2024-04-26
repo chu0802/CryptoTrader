@@ -1,5 +1,10 @@
 import { init, registerIndicator, registerOverlay } from 'https://cdn.skypack.dev/klinecharts'
 
+function getQueryParam(param) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(param);
+}
+
 function getTimeDifferenceAsString(timestamp1, timestamp2) {
   // Calculate the difference in milliseconds
   let difference = Math.abs(timestamp1 - timestamp2);
@@ -28,8 +33,8 @@ function getTimeDifferenceAsString(timestamp1, timestamp2) {
   return result;
 }
 
-async function fetchPrice() {
-  return fetch('/price/prices.json')
+async function fetchPrice(symbol) {
+  return fetch(`/price/${symbol}/prices.json`)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -48,8 +53,8 @@ async function fetchPrice() {
     });
 }
 
-async function fetchTransaction() {
-  return fetch('/results/result.json')
+async function fetchTransaction(symbol) {
+  return fetch(`/results/${symbol}/result.json`)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -67,8 +72,8 @@ async function fetchTransaction() {
     })
 }
 
-async function fetchData() {
-  return fetch('/results/profit_flow.json')
+async function fetchData(symbol) {
+  return fetch(`/results/${symbol}/profit_flow.json`)
       .then(response => {
           if (!response.ok) {
               throw new Error('Network response was not ok');
@@ -106,8 +111,12 @@ registerIndicator({
   createTooltipDataSource: () => ({name: ''})
 })
 
-Promise.all([fetchData(), fetchTransaction(), fetchPrice()])
+const symbol = getQueryParam('symbol');
+
+Promise.all([fetchData(symbol), fetchTransaction(symbol), fetchPrice(symbol)])
   .then(([profitList, transactionList, priceList]) => {
+    const firstIdx = priceList.findIndex(item => item.timestamp === profitList[0].timestamp)
+    priceList = priceList.slice(firstIdx, firstIdx + profitList.length)
     registerOverlay({
       name: 'sampleRect',
       totalStep: 3,
@@ -254,7 +263,7 @@ Promise.all([fetchData(), fetchTransaction(), fetchPrice()])
       createTooltipDataSource: () => ({name: ''})
     })
 
-    priceList = priceList.slice(-profitList.length)
+
     registerIndicator({
       name: 'Profit',
       figures: [

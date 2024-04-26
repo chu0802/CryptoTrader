@@ -1,42 +1,54 @@
-import argparse
 import json
+import logging
+import os
+from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from utils.config import DataPath, ResultsPath
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--strategy", type=str, default="grid_trading")
-parser.add_argument("--symbol", type=str, default="btcusdt")
-args = parser.parse_args()
+# Environment configuration
+STRATEGY = os.getenv("STRATEGY", "grid_trading")
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = FastAPI()
 
 # Serve HTML files
 @app.get("/", response_class=FileResponse)
-def read_root():
-    return FileResponse("vis/index.html")
+async def read_root(symbol: str = "ondousdt"):
+    return FileResponse(BASE_DIR / "vis/index.html")
 
 
-@app.get("/results/{filename}")
-async def read_results(filename: str):
-    with (ResultsPath(args.strategy) / filename).open("r") as f:
+class PriceData(BaseModel):
+    symbol: str
+    filename: str
+
+
+@app.get("/results/{symbol}/{filename}")
+async def read_results(symbol: str, filename: str):
+    results_path = BASE_DIR / "results" / STRATEGY / symbol / filename
+    logging.info(results_path)
+    if not results_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    with results_path.open("r") as f:
         data = json.load(f)
     return data
 
 
-@app.get("/price/{filename}")
-async def fetch_price(filename: str):
-    with (DataPath(args.symbol) / filename).open("r") as f:
+@app.get("/price/{symbol}/{filename}")
+async def fetch_price(symbol: str, filename: str):
+    data_path = BASE_DIR / "data" / symbol / filename
+    if not data_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    with data_path.open("r") as f:
         data = json.load(f)
     return data
 
 
 # Mount static files
-app.mount("/", StaticFiles(directory="vis"), name="static")
+app.mount("/", StaticFiles(directory=BASE_DIR / "vis"), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=9898)
