@@ -28,8 +28,28 @@ function getTimeDifferenceAsString(timestamp1, timestamp2) {
   return result;
 }
 
+async function fetchPrice() {
+  return fetch('/price/prices.json')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json(); // Parse the JSON response
+    })
+    .then(data => {
+      const prices = Object.entries(data).map(([timestamp, entry]) => ({
+        close: entry.close,
+        high: entry.high,
+        low: entry.low,
+        open: entry.open,
+        timestamp: new Date(timestamp).getTime()
+      }));
+      return prices;
+    });
+}
+
 async function fetchTransaction() {
-  return fetch('/data/result.json')
+  return fetch('/results/result.json')
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -48,7 +68,7 @@ async function fetchTransaction() {
 }
 
 async function fetchData() {
-  return fetch('/data/profit_flow.json')
+  return fetch('/results/profit_flow.json')
       .then(response => {
           if (!response.ok) {
               throw new Error('Network response was not ok');
@@ -68,99 +88,26 @@ async function fetchData() {
 }
 
 const chart = init('k-line-chart')
-chart.setStyles({
-  candle: {
-    type: 'area',
-    tooltip: {
-      showRule: 'follow_cross',
-      showType: 'rect',
-      custom: [
-        { title: 'Time: ', value: '{time}'},
-        { title: 'Profit: ', value: '{close}'},
-        { title: 'Current Price: ', value: '{high}'},
-        // { title: 'Average Price: ', value: '{open}'},
-        { title: 'ROI: ', value: '{low}%'},
-        { title: '', value: ''},
-        { title: '', value: ''}
-      ],
-      rect: {
-        position: 'pointer',
-        offsetLeft: 50,
-        offsetTop: 20,
-        offsetRight: 50,
-        offsetBottom: 20,
 
-      }
+registerIndicator({
+  name: 'ZeroLine',
+  figures: [
+    {
+      key: 'zeroLine',
+      type: 'line',
+      styles: ()=>({
+        style: 'dashed', color: '#FF4500', dashedValue: [8, 4], size: 1
+      })
     }
+  ],
+  calc: (kLineDataList) => {
+    return kLineDataList.map(kLineData => ({ zeroLine: 0}))
   },
-  indicator: {
-    tooltip: {
-      showRule: 'none'
-    },
-    lines: [
-      {
-        style: 'dashed',
-        smooth: false,
-        dashedValue: [8, 4],
-        size: 1,
-        color: '#FF4500'
-      }
-    ]
-}})
+  createTooltipDataSource: () => ({name: ''})
+})
 
-Promise.all([fetchData(), fetchTransaction()])
-  .then(([profitList, transactionList]) => {
-    let clickTime = 0;
-
-    registerIndicator({
-      name: 'Transaction',
-      figures: [
-        {key: 'transaction'}
-      ],
-      calc: (kLineDataList) => {
-        const results = []
-
-        kLineDataList.forEach(kLineData => {
-          let transaction = transactionList.find(tr => tr.timestamp * 1000 === kLineData.timestamp)
-          if (transaction) {
-            results.push({transaction: {
-              mode: transaction.mode,
-              buyPrice: transaction.price,
-              amount: transaction.amount,
-              currentPrice: kLineData.close,
-            }})
-          }
-          else {
-            results.push({transaction: "None"})
-          }
-        })
-        return results
-      },
-      draw: ({
-        ctx,
-        barSpace,
-        visibleRange,
-        indicator,
-        xAxis,
-        yAxis
-      }) => {
-        const { from, to } = visibleRange
-        const result = indicator.result
-        for (let i = from; i < to; i++) {
-          const data = result[i]
-          if (data.transaction !== "None") {
-            const x = xAxis.convertToPixel(i)
-            const y = yAxis.convertToPixel(data.transaction.currentPrice)
-
-            ctx.beginPath();
-            ctx.arc(x, y, 4, 0, 2 * Math.PI, false);
-            ctx.fillStyle = data.transaction.mode === "BUY"? "#FF007F" : "#90EE90"
-            ctx.fill();
-          }
-        }
-      }
-    })
-
+Promise.all([fetchData(), fetchTransaction(), fetchPrice()])
+  .then(([profitList, transactionList, priceList]) => {
     registerOverlay({
       name: 'sampleRect',
       totalStep: 3,
@@ -208,12 +155,28 @@ Promise.all([fetchData(), fetchTransaction()])
     })
 
     registerIndicator({
-      name: 'Custom',
+      name: 'priceTransaction',
       figures: [
-        { key: 'emoji' , title: 'Zero Line: ', type: 'line'}
+        {key: 'transaction'}
       ],
       calc: (kLineDataList) => {
-        return kLineDataList.map(kLineData => ({ emoji: 0}))
+        const results = []
+
+        kLineDataList.forEach(kLineData => {
+          let transaction = transactionList.find(tr => tr.timestamp * 1000 === kLineData.timestamp)
+          if (transaction) {
+            results.push({transaction: {
+              mode: transaction.mode,
+              buyPrice: transaction.price,
+              amount: transaction.amount,
+              currentPrice: kLineData.close,
+            }})
+          }
+          else {
+            results.push({transaction: "None"})
+          }
+        })
+        return results
       },
       draw: ({
         ctx,
@@ -224,55 +187,202 @@ Promise.all([fetchData(), fetchTransaction()])
         yAxis
       }) => {
         const { from, to } = visibleRange
-        ctx.textAlign = 'center'
-
         const result = indicator.result
         for (let i = from; i < to; i++) {
           const data = result[i]
-          const x = xAxis.convertToPixel(i)
-          const y = yAxis.convertToPixel(data.emoji)
+          if (data.transaction !== "None") {
+            const x = xAxis.convertToPixel(i)
+            const y = yAxis.convertToPixel(data.transaction.currentPrice)
+
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI, false);
+            ctx.fillStyle = data.transaction.mode === "BUY"? "#FF007F" : "#90EE90"
+            ctx.fill();
+          }
         }
-        return false
-      }
+      },
+      createTooltipDataSource: () => ({name: ''})
     })
-    chart.applyNewData(profitList)
+
+    registerIndicator({
+      name: 'profitTransaction',
+      figures: [
+        {key: 'transaction'}
+      ],
+      calc: () => {
+        const results = []
+
+        profitList.forEach(kLineData => {
+          let transaction = transactionList.find(tr => tr.timestamp * 1000 === kLineData.timestamp)
+          if (transaction) {
+            results.push({transaction: {
+              mode: transaction.mode,
+              buyPrice: transaction.price,
+              amount: transaction.amount,
+              currentPrice: kLineData.close,
+            }})
+          }
+          else {
+            results.push({transaction: "None"})
+          }
+        })
+        return results
+      },
+      draw: ({
+        ctx,
+        barSpace,
+        visibleRange,
+        indicator,
+        xAxis,
+        yAxis
+      }) => {
+        const { from, to } = visibleRange
+        const result = indicator.result
+        for (let i = from; i < to; i++) {
+          const data = result[i]
+          if (data.transaction !== "None") {
+            const x = xAxis.convertToPixel(i)
+            const y = yAxis.convertToPixel(data.transaction.currentPrice)
+
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI, false);
+            ctx.fillStyle = data.transaction.mode === "BUY"? "#FF007F" : "#90EE90"
+            ctx.fill();
+          }
+        }
+      },
+      createTooltipDataSource: () => ({name: ''})
+    })
+
+    priceList = priceList.slice(-profitList.length)
+    registerIndicator({
+      name: 'Profit',
+      figures: [
+        { key: 'profit', title: 'Profit: ', type: 'line' }
+      ],
+      calc: () => {
+        return profitList.map(entry => ({profit: entry.close}))
+      },
+      createTooltipDataSource: ({crosshair}) => {
+        return {
+          name: '',
+          values: [
+            {
+              title: {
+                text: 'Profit: ',
+                color: 'blue'
+              },
+              value: {
+                text: profitList[crosshair.dataIndex].close.toFixed(4),
+                color: 'blue'
+              }
+            },
+            {
+              title: {
+                text: 'ROI: ',
+                color: 'red'
+              },
+              value: {
+                text: (100 * profitList[crosshair.dataIndex].close / 182).toFixed(2) + '%',
+                color: 'red'
+              }
+            }
+          ]
+        }
+      }
+
+    })
+
+    container = document.getElementById('container')
+
+    let clickTime = 0;
+    chart.applyNewData(priceList)
+    // chart.applyNewData(profitList)
     chart.setPriceVolumePrecision(4, 4)
 
-    chart.createIndicator('Transaction', true, {id: 'candle_pane'})
+    chart.createIndicator(
+      'Profit',
+      false,
+      {
+          id: 'profitPane',
+          height: container.offsetHeight / 2
+      }
+    )
+    chart.createIndicator('priceTransaction', true, {id: 'candle_pane'})
+    chart.createIndicator('profitTransaction', true, {id: 'profitPane'})
 
-    const container = document.getElementById('container')
     const buttonContainer = document.createElement('div')
     buttonContainer.classList.add('button-container')
 
-
     const setbutton = document.createElement('button')
-    setbutton.innerText = 'Set Zero Line'
+    setbutton.innerText = 'Remove Zero Line'
+    chart.createIndicator('ZeroLine', true, {id: 'profitPane'})
     setbutton.addEventListener('click', function(){
-      if (clickTime % 2 == 0){
+      if (clickTime % 2 == 1){
         setbutton.innerText = 'Remove Zero Line'
-        chart.createIndicator('Custom', true, {id: 'candle_pane'})
+        chart.createIndicator('ZeroLine', true, {id: 'profitPane'})
       }
       else {
         setbutton.innerText = 'Set Zero Line'
-        chart.removeIndicator('candle_pane', 'Custom')
+        chart.removeIndicator('profitPane', 'ZeroLine')
       }
       clickTime ++
     })
 
     const priceButton = document.createElement('button')
     priceButton.innerText = 'Draw Price Line'
-    priceButton.addEventListener('click', () => { chart.createOverlay('simpleTag') })
+    priceButton.addEventListener('click', () => {chart.createOverlay('simpleTag'); })
 
     const febbuttoon = document.createElement('button')
     febbuttoon.innerText = 'Draw Fib. Line'
-    febbuttoon.addEventListener('click', () => { chart.createOverlay('sampleRect') })
-
-    const menuDiv = document.getElementById('menu-bar')
-    const menuUl = document.createElement('ul')
+    febbuttoon.addEventListener('click', () => {chart.createOverlay('sampleRect'); })
 
     buttonContainer.appendChild(setbutton)
     buttonContainer.appendChild(priceButton)
     buttonContainer.appendChild(febbuttoon)
     container.appendChild(buttonContainer)
 
+    chart.setStyles({
+      candle: {
+        type: 'area',
+        tooltip: {
+          showRule: 'follow_cross',
+          showType: 'rect',
+          custom: [
+            { title: 'Time: ', value: '{time}' },
+            { title: 'Open: ', value: '{open}' },
+            { title: 'High: ', value: '{high}' },
+            { title: 'Low: ', value: '{low}' },
+            { title: 'Close: ', value: '{close}' },
+            { title: '', value: ''}
+          ],
+          rect: {
+            position: 'pointer',
+            offsetLeft: 50,
+            offsetTop: 20,
+            offsetRight: 50,
+            offsetBottom: 20,
+          }
+        }
+      },
+      indicator: {
+        lines: [
+          {
+            size: 2,
+            color: 'blue'
+          },
+          {
+            style: 'dashed',
+            smooth: false,
+            dashedValue: [8, 4],
+            size: 1,
+            color: '#FF4500'
+          }
+        ],
+        tooltip: {
+          showRule: 'follow_cross',
+          showType: 'rect'
+        }
+      }
+    })
   })
