@@ -37,7 +37,7 @@ class FormattedDateTime:
 
     def __sub__(self, other: Union["FormattedDateTime", datetime, int]):
         if isinstance(other, int):
-            return self.time - timedelta(seconds=other)
+            return FormattedDateTime(self.time - timedelta(seconds=other), tz=self.tz)
         elif isinstance(other, datetime):
             return self.time - other
         elif isinstance(other, FormattedDateTime):
@@ -74,7 +74,7 @@ class FormattedDateTime:
 
     @property
     def timestamp(self):
-        return self.time.timestamp()
+        return int(self.time.timestamp())
 
     @property
     def string(self):
