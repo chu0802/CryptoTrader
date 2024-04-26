@@ -33,7 +33,8 @@ class BaseStrategy:
 
     def get_transaction_snapshot(self, time, current_price, transaction=None):
         snapshot = {
-            "time": time,
+            "formattedTime": time,
+            "timestamp": time.timestamp,
             "transaction_flow": self.transaction_flow.dump(current_price),
         }
         if transaction:
@@ -58,7 +59,7 @@ class BaseStrategy:
     def get_action(self, time: FormattedDateTime, kline):
         transactions = self._get_action(time, kline)
 
-        if transactions is not None:
+        if transactions is not None and len(transactions) > 0:
             for transaction in transactions:
                 transaction.amount *= self.leverage
 
