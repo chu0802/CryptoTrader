@@ -21,6 +21,14 @@ class BaseStrategy:
     def transaction_snapshots(self):
         return self._transaction_snapshots
 
+    @property
+    def current_average_price(self):
+        return self.transaction_flow.average_price
+
+    @property
+    def total_amount(self):
+        return self.transaction_flow.amount
+
     def get_last_transaction_snapshot(self):
         if len(self._transaction_snapshots) == 0:
             return None

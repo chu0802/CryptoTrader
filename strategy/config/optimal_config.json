@@ -1,0 +1,11 @@
+{
+    "name": "optimal",
+    "config": {
+        "budget": 500,
+        "leverage": 30,
+        "amount": 7,
+        "max_continual_operation": 5,
+        "window_size": 120,
+        "min_ratio": 0.02
+    }
+}
