@@ -50,6 +50,7 @@ class KDJGridTradingStrategy(GridTradingStrategy):
         upper_bound: float = 80,
         epsilon: float = 1,
         num_interval: int = 20,
+        min_interval: int = 5,
     ):
         super().__init__(budget, leverage, highest, lowest, num_interval, amount)
         self.cold_start = cold_start
@@ -57,6 +58,9 @@ class KDJGridTradingStrategy(GridTradingStrategy):
         self.upper_bound = upper_bound
         self.epsilon = epsilon
         self.counter = 0
+        self.sell_interval_counter = min_interval
+        self.buy_interval_counter = min_interval
+        self.min_interval = min_interval
 
         self.kdj_data = kdj_calculator(symbol)
 
@@ -65,21 +69,69 @@ class KDJGridTradingStrategy(GridTradingStrategy):
             return False
         return True
 
-    def buy_criteria(self, prev_kdj: KDJ) -> bool:
-        base_criteria = [
+    def price_initialization(self, price, base="buy"):
+        if base == "buy":
+            self.buy_price = self.get_closest_lower_bound(price)
+            self.sell_price = self.buy_price + self.interval
+        else:
+            self.sell_price = self.get_closest_upper_bound(price)
+            self.buy_price = self.sell_price - self.interval
+
+    def buy_criteria(self, kline: KLine, prev_kdj: KDJ, pprev_kdj: KDJ) -> bool:
+        kdj_criteria = [
             prev_kdj.k < self.lower_bound,
             prev_kdj.d < self.lower_bound,
+            pprev_kdj.k < self.lower_bound,
+            pprev_kdj.d < self.lower_bound,
+            # abs(prev_kdj.k - prev_kdj.d) <= self.epsilon,
+            prev_kdj.k > pprev_kdj.k,
+            self.buy_interval_counter >= self.min_interval,
         ]
-        cross_criteria = [abs(prev_kdj.k - prev_kdj.d) <= self.epsilon]
-        return all(base_criteria + cross_criteria)
 
-    def sell_criteria(self, prev_kdj: KDJ) -> bool:
-        base_criteria = [
+        if all(kdj_criteria) and self.buy_price is None:
+            self.price_initialization(kline.open, base="buy")
+
+        return all(kdj_criteria) and kline.low <= self.buy_price
+
+    def sell_criteria(self, kline: KLine, prev_kdj: KDJ, pprev_kdj: KDJ) -> bool:
+        kdj_criteria = [
             prev_kdj.k > self.upper_bound,
             prev_kdj.d > self.upper_bound,
+            pprev_kdj.k > self.upper_bound,
+            pprev_kdj.d > self.upper_bound,
+            # abs(prev_kdj.k - prev_kdj.d) <= self.epsilon,
+            prev_kdj.k < pprev_kdj.k,
+            self.sell_interval_counter >= self.min_interval,
         ]
-        cross_criteria = [abs(prev_kdj.k - prev_kdj.d) <= self.epsilon]
-        return all(base_criteria + cross_criteria)
+
+        if all(kdj_criteria) and self.sell_price is None:
+            self.price_initialization(kline.open, base="sell")
+        return all(kdj_criteria) and kline.high >= self.sell_price
+
+    def buy_process(self, time, kline):
+        total_transactions = []
+        if kline.open <= self.buy_price:
+            total_transactions.append(
+                Transaction(mode="BUY", amount=self.amount, price=kline.open, time=time)
+            )
+        self.buy_price = self.get_closest_lower_bound(kline.open * 0.999)
+        self.sell_price = self.buy_price + self.interval
+        return total_transactions
+
+    def sell_process(self, time, kline):
+        total_transactions = []
+        if kline.open >= self.sell_price:
+            total_transactions.append(
+                Transaction(
+                    mode="SELL",
+                    amount=self.amount,
+                    price=kline.open,
+                    time=time,
+                )
+            )
+        self.sell_price = self.get_closest_upper_bound(kline.open * 1.001)
+        self.buy_price = self.sell_price - self.interval
+        return total_transactions
 
     def _get_action(self, time: FormattedDateTime, kline: KLine) -> List[Transaction]:
         total_transactions = []
@@ -88,29 +140,28 @@ class KDJGridTradingStrategy(GridTradingStrategy):
         ):
 
             prev_kdj = KDJ.from_dict(self.kdj_data[time - 60 * 1])
-            # initialization
-            if self.buy_price is None and self.sell_price is None:
-                self.buy_price = self.get_closest_lower_bound(kline.close)
-                self.sell_price = (
-                    self.get_closest_upper_bound(kline.close) + self.interval
-                )
+            pprev_kdj = KDJ.from_dict(self.kdj_data[time - 60 * 2])
 
             # if the close price is higher than the open price,
             # we simulate the process by first buying, then selling.
             if kline.close >= kline.open:
-                if kline.low <= self.buy_price and self.buy_criteria(prev_kdj):
+                if self.buy_criteria(kline, prev_kdj, pprev_kdj):
                     total_transactions += self.buy_process(time, kline)
+                    self.buy_interval_counter = 0
 
-                if kline.high >= self.sell_price and self.sell_criteria(prev_kdj):
+                if self.sell_criteria(kline, prev_kdj, pprev_kdj):
                     total_transactions += self.sell_process(time, kline)
+                    self.sell_interval_counter = 0
             # otherwise, we simulate the process by first selling, then buying.
             else:
-                if kline.high >= self.sell_price and self.sell_criteria(prev_kdj):
+                if self.sell_criteria(kline, prev_kdj, pprev_kdj):
                     total_transactions += self.sell_process(time, kline)
-                if kline.low <= self.buy_price and self.buy_criteria(prev_kdj):
+                    self.sell_interval_counter = 0
+                if self.buy_criteria(kline, prev_kdj, pprev_kdj):
                     total_transactions += self.buy_process(time, kline)
-
-            return total_transactions
+                    self.buy_interval_counter = 0
 
         self.counter += 1
+        self.buy_interval_counter += 1
+        self.sell_interval_counter += 1
         return total_transactions
