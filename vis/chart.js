@@ -53,8 +53,8 @@ async function fetchPrice(symbol) {
     });
 }
 
-async function fetchTransaction(symbol) {
-  return fetch(`/results/${symbol}/result.json`)
+async function fetchTransaction(strategy, symbol) {
+  return fetch(`/results/${strategy}/${symbol}/result.json`)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -72,8 +72,8 @@ async function fetchTransaction(symbol) {
     })
 }
 
-async function fetchData(symbol) {
-  return fetch(`/results/${symbol}/profit_flow.json`)
+async function fetchData(strategy, symbol) {
+  return fetch(`/results/${strategy}/${symbol}/profit_flow.json`)
       .then(response => {
           if (!response.ok) {
               throw new Error('Network response was not ok');
@@ -112,8 +112,9 @@ registerIndicator({
 })
 
 const symbol = getQueryParam('symbol');
+const strategy = getQueryParam('strategy');
 
-Promise.all([fetchData(symbol), fetchTransaction(symbol), fetchPrice(symbol)])
+Promise.all([fetchData(strategy, symbol), fetchTransaction(strategy, symbol), fetchPrice(symbol)])
   .then(([profitList, transactionList, priceList]) => {
     const firstIdx = priceList.findIndex(item => item.timestamp === profitList[0].timestamp)
     priceList = priceList.slice(firstIdx, firstIdx + profitList.length)
@@ -153,7 +154,7 @@ Promise.all([fetchData(symbol), fetchTransaction(symbol), fetchPrice(symbol)])
               attrs: {
                 x: coordinates[0].x,
                 y: coordinates[0].y + 10,
-                text: ((endValue - startValue > 0)? '+' : '') + (endValue - startValue).toFixed(2) + ', ' + getTimeDifferenceAsString(endTime, startTime)
+                text: ((endValue - startValue > 0)? '+' : '') + (endValue - startValue).toFixed(2) + ' (' + ((endValue - startValue > 0)? '+' : '') + (100 * (endValue - startValue) / startValue).toFixed(2) + '%)'  + ', ' + getTimeDifferenceAsString(endTime, startTime)
               }
             }
           ]

@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from pathlib import Path
 
 import uvicorn
@@ -10,7 +9,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # Environment configuration
-STRATEGY = os.getenv("STRATEGY", "grid_trading")
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = FastAPI()
@@ -26,9 +24,9 @@ class PriceData(BaseModel):
     filename: str
 
 
-@app.get("/results/{symbol}/{filename}")
-async def read_results(symbol: str, filename: str):
-    results_path = BASE_DIR / "results" / STRATEGY / symbol / filename
+@app.get("/results/{strategy}/{symbol}/{filename}")
+async def read_results(strategy: str, symbol: str, filename: str):
+    results_path = BASE_DIR / "results" / strategy / symbol / filename
     logging.info(results_path)
     if not results_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
