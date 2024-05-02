@@ -36,8 +36,7 @@ class Tester:
             else self.end_time
         )
 
-        total_seconds = int((end_time - self.start_time).total_seconds())
-
+        total_seconds = int(end_time - self.start_time)
         return {
             self.start_time + i: KLine(**data[(self.start_time + i).string])
             for i in range(0, total_seconds + 1, 60)
@@ -47,7 +46,6 @@ class Tester:
         net_profit_history = []
         results_path = ResultsPath(f"{strategy.name}/{self.symbol}/result.json")
         profit_path = ResultsPath(f"{strategy.name}/{self.symbol}/profit_flow.json")
-        results_path.parent.mkdir(parents=True, exist_ok=True)
 
         for time, kline in self._data.items():
             strategy.get_action(time, kline)
@@ -78,7 +76,7 @@ def fetch_price(start_time, end_time=None, symbol="btcusdt"):
     if end_time is None:
         end_time = datetime.now() - timedelta(minutes=1)
     end_time = FormattedDateTime(end_time)
-    fetch_amount = int((end_time - start_time).total_seconds() // 60)
+    fetch_amount = int((end_time - start_time) // 60)
     commands = [
         PYTHON_PATH,
         "-m",
