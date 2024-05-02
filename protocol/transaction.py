@@ -37,7 +37,7 @@ class Transaction:
         }
 
     def __repr__(self):
-        return f"Transaction(<{self.mode.name}> {self.amount:.4f} @ {self.price:.1f})"
+        return f"Transaction(<{self.mode.name}> {self.amount:.4f} @ {self.price:.4f})"
 
     def __str__(self):
         return self.__repr__()

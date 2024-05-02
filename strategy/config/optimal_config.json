@@ -1,11 +1,13 @@
 {
     "name": "optimal",
     "config": {
-        "budget": 500,
+        "symbol": "ondousdt",
+        "budget": 600,
         "leverage": 30,
-        "amount": 7,
+        "amount": 8,
         "max_continual_operation": 5,
         "window_size": 120,
-        "min_ratio": 0.02
+        "min_ratio": 0.02,
+        "dump_path": "online_status.pkl"
     }
 }

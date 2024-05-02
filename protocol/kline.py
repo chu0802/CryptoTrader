@@ -15,3 +15,7 @@ class KLine:
             "low": self.low,
             "close": self.close,
         }
+
+    @classmethod
+    def from_api(cls, data):
+        return cls(float(data[1]), float(data[2]), float(data[3]), float(data[4]))

@@ -1,23 +1,31 @@
 import json
+import pickle
 from pathlib import Path
 
 from protocol.datetime import DatetimeJsonEncoder
 
 
-def load(path: Path):
+def load(path: Path, is_pickle=False):
     if not isinstance(path, Path):
         path = Path(path)
 
-    with path.open("r") as f:
-        data = json.load(f)
+    with path.open("r" if not is_pickle else "rb") as f:
+        if is_pickle:
+            data = pickle.load(f)
+        else:
+            data = json.load(f)
     return data
 
 
-def dump(obj, path: Path):
+def dump(obj, path: Path, is_pickle=False, mode="w"):
     if not isinstance(path, Path):
         path = Path(path)
-    with path.open("w") as f:
-        json.dump(obj, f, indent=4, cls=DatetimeJsonEncoder)
+    path.parent.mkdir(exist_ok=True, parents=True)
+    with path.open(mode if not is_pickle else mode + "b") as f:
+        if is_pickle:
+            pickle.dump(obj, f)
+        else:
+            json.dump(obj, f, indent=4, cls=DatetimeJsonEncoder)
 
 
 if __name__ == "__main__":
