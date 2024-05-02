@@ -293,7 +293,7 @@ Promise.all([fetchData(strategy, symbol), fetchTransaction(strategy, symbol), fe
                 color: 'red'
               },
               value: {
-                text: (100 * profitList[crosshair.dataIndex].close / 182).toFixed(2) + '%',
+                text: (100 * profitList[crosshair.dataIndex].close / 600).toFixed(2) + '%',
                 color: 'red'
               }
             }
