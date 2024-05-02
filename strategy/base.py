@@ -1,21 +1,45 @@
 from abc import abstractmethod
 from typing import List
 
-from protocol import FormattedDateTime, Transaction, TransactionFlow
+from protocol import FormattedDateTime, KLine, Transaction, TransactionFlow
+from utils.config import StatusPath
+from utils.json import dump
 
 
 class BaseStrategy:
     _name = "base"
 
-    def __init__(self, budget: float, leverage: int = 1):
+    def __init__(
+        self,
+        symbol: str,
+        budget: float,
+        leverage: int = 1,
+        dump_path: str = "status.pkl",
+    ):
         self.original_budget = budget
         self.leverage = leverage
         self._transaction_snapshots = []
         self.transaction_flow = TransactionFlow()
 
+        self._symbol = symbol
+        self._dump_path = (
+            StatusPath() / "strategy" / self.name / symbol.lower() / dump_path
+        )
+
+    def is_empty(self):
+        return len(self._transaction_snapshots) == 0
+
+    @property
+    def symbol(self):
+        return self._symbol
+
     @property
     def name(self):
         return self._name
+
+    @property
+    def dump_path(self):
+        return self._dump_path
 
     @property
     def transaction_snapshots(self):
@@ -29,7 +53,7 @@ class BaseStrategy:
     def total_amount(self):
         return self.transaction_flow.amount
 
-    def get_last_transaction_snapshot(self):
+    def get_last_transaction_snapshot(self) -> Transaction:
         if len(self._transaction_snapshots) == 0:
             return None
         return self._transaction_snapshots[-1]
@@ -51,6 +75,12 @@ class BaseStrategy:
             snapshot["current price"] = current_price
         return snapshot
 
+    def update_transaction(self, time, transaction, current_price):
+        self.transaction_flow += transaction
+        self._transaction_snapshots.append(
+            self.get_transaction_snapshot(time, current_price, transaction)
+        )
+
     def check_budget(
         self, current_price: float, transaction_flow: TransactionFlow = None
     ):
@@ -59,8 +89,13 @@ class BaseStrategy:
         total_budget = self.original_budget + transaction_flow.net_profit(current_price)
         return total_budget > 0
 
+    def dump(self):
+        dump(self, self.dump_path, is_pickle=True)
+
     @abstractmethod
-    def _get_action(self, time: FormattedDateTime, kline) -> List[Transaction]:
+    def _get_action(
+        self, time: FormattedDateTime, kline: KLine, *args, **kwargs
+    ) -> List[Transaction]:
         raise NotImplementedError
 
     @abstractmethod
@@ -77,8 +112,4 @@ class BaseStrategy:
                     print("Budget is not enough")
                     break
                 else:
-                    self.transaction_flow += transaction
-                    current_price = kline.close
-                    self._transaction_snapshots.append(
-                        self.get_transaction_snapshot(time, current_price, transaction)
-                    )
+                    self.update_transaction(time, transaction, kline.close)

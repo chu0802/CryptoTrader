@@ -9,14 +9,16 @@ class GridTradingStrategy(BaseStrategy):
 
     def __init__(
         self,
+        symbol: str,
         budget: float,
         leverage: int = 1,
+        dump_path: str = "status.pkl",
         highest: float = 75000,
         lowest: float = 60000,
         num_interval: int = 20,
         amount: float = 0.003,
     ):
-        super().__init__(budget, leverage)
+        super().__init__(symbol, budget, leverage, dump_path)
         self.highest = highest
         self.lowest = lowest
         self.interval = (highest - lowest) / num_interval

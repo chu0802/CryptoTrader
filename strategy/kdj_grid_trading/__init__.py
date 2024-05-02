@@ -42,6 +42,7 @@ class KDJGridTradingStrategy(GridTradingStrategy):
         symbol: str,
         budget: float,
         leverage: int = 1,
+        dump_path: str = "status.pkl",
         highest: float = 75000,
         lowest: float = 60000,
         amount: float = 0.003,
@@ -52,7 +53,9 @@ class KDJGridTradingStrategy(GridTradingStrategy):
         num_interval: int = 20,
         min_interval: int = 5,
     ):
-        super().__init__(budget, leverage, highest, lowest, num_interval, amount)
+        super().__init__(
+            symbol, budget, leverage, dump_path, highest, lowest, num_interval, amount
+        )
         self.cold_start = cold_start
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound

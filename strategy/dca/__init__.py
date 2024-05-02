@@ -7,12 +7,14 @@ class DCAStrategy(BaseStrategy):
 
     def __init__(
         self,
+        symbol: str,
         budget: float,
         leverage: int = 1,
+        dump_path: str = "status.pkl",
         time_interval: str = "week",
         amount_in_usd: float = 100,
     ):
-        super().__init__(budget, leverage)
+        super().__init__(symbol, budget, leverage, dump_path)
         self.time_interval = self.convert_interval(time_interval)
         self.amount_in_usd = amount_in_usd
 
