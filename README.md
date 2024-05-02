@@ -1,5 +1,5 @@
-# CryptoTracker
-CryptoTracker allows easily development of investment strategies for cryptocurrency. It mainly simulate trading strategies against historical data to evaluate their performance.
+# CryptoTrader
+CryptoTrader allows easily development of investment strategies for cryptocurrency. It mainly simulate trading strategies against historical data to evaluate their performance.
 
 ## Visualization Demo
 
