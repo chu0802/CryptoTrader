@@ -130,6 +130,5 @@ async def main(args):
 if __name__ == "__main__":
     args = argument_parsing()
     args.output_path = DataPath(f"{args.symbol.lower()}/prices.json")
-    args.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     asyncio.run(main(args))
