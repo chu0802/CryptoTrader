@@ -3,6 +3,8 @@
 data/
 results/
 transactions/
+status/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
