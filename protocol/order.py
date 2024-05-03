@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from protocol import FormattedDateTime, Transaction
+from protocol.datetime import FormattedDateTime
+from protocol.transaction import Transaction
 
 
 @dataclass

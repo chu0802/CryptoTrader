@@ -3,7 +3,8 @@ import json
 from collections import deque
 from typing import Dict
 
-from protocol import FormattedDateTime, KLine
+from protocol.datetime import FormattedDateTime
+from protocol.kline import KLine
 from utils.config import DataPath
 from utils.json import dump, load
 

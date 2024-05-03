@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import requests
 
-from protocol import FormattedDateTime
+from protocol.datetime import FormattedDateTime
 
 
 class TransactionType(Enum):
@@ -27,7 +27,7 @@ class Transaction:
     price: float
     amount: float
     time: FormattedDateTime
-    fee_ratio: Optional[float] = 2e-4
+    fee_ratio: Optional[float] = 5e-4
 
     def to_dict(self):
         return {

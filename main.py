@@ -4,7 +4,8 @@ import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from protocol import FormattedDateTime, KLine
+from protocol.datetime import FormattedDateTime
+from protocol.kline import KLine
 from strategy import BaseStrategy, get_strategy
 from utils.config import PYTHON_PATH, DataPath, ResultsPath, StrategyPath
 from utils.json import dump, load

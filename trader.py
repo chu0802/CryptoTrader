@@ -2,7 +2,9 @@ import argparse
 import os
 
 from binance.um_futures import UMFutures
-from protocol import Action, FormattedDateTime, KLine, Order
+from protocol.datetime import FormattedDateTime
+from protocol.kline import KLine
+from protocol.order import Action, Order
 from strategy import BaseStrategy, get_strategy
 from utils.config import ResultsPath, StatusPath, StrategyPath
 from utils.json import dump, load

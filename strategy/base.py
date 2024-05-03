@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from typing import List
 
-from protocol import FormattedDateTime, KLine, Transaction, TransactionFlow
+from protocol.datetime import FormattedDateTime
+from protocol.kline import KLine
+from protocol.transaction import Transaction, TransactionFlow
 from utils.config import StatusPath
 from utils.json import dump
 

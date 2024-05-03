@@ -1,6 +1,7 @@
 from typing import List
 
-from protocol import FormattedDateTime, Transaction
+from protocol.datetime import FormattedDateTime
+from protocol.transaction import Transaction
 from strategy.base import BaseStrategy
 
 
