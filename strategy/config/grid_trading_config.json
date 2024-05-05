@@ -1,9 +1,10 @@
 {
     "name": "grid_trading",
     "config": {
-        "budget": 182,
-        "leverage": 5,
-        "amount": 7,
+        "symbol": "ondousdt",
+        "budget": 600,
+        "leverage": 15,
+        "amount": 8,
         "highest": 0.9,
         "lowest": 0.7,
         "num_interval": 25
