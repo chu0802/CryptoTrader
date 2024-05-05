@@ -1,0 +1,15 @@
+{
+    "name": "online_kdj_time",
+    "config": {
+        "symbol": "ondousdt",
+        "budget": 600,
+        "leverage": 30,
+        "amount": 40,
+        "low": 30,
+        "high": 70,
+        "min_ratio": 0.05,
+        "max_continual_count": 2,
+        "kdj_intervals": [1, 3],
+        "dump_path": "online_status.pkl"
+    }
+}

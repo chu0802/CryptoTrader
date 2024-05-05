@@ -130,6 +130,10 @@ async def main(args):
 
 if __name__ == "__main__":
     args = argument_parsing()
-    args.output_path = DataPath(f"{args.symbol.lower()}/prices.json")
+    args.output_path = (
+        DataPath(f"{args.symbol.lower()}/prices.json")
+        if args.interval == "1m"
+        else DataPath(f"{args.symbol.lower()}/prices{args.interval}.json")
+    )
 
     asyncio.run(main(args))
